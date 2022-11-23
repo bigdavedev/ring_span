@@ -1,0 +1,53 @@
+name: ci
+on:
+  pull_request:
+  release:
+    types: [published]
+  push:
+    tags:
+    branches:
+      - dev
+
+jobs:
+  Test:
+    runs-on: ${{ matric.os }}
+    strategy:
+      fail-fast: false
+
+    matrix:
+      os:
+        - ubuntu-22.04
+      compiler:
+        - gcc-12
+      generator:
+        - "Unix Makefiles"
+      build_type:
+        - Debug
+
+      include:
+        - compiler: gcc-12
+          gcov_executable: gcov
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Setup Cpp
+        uses: aminya/setup-cpp@v1
+        with:
+          compiler: ${{ matrix.compiler }}
+
+          cmake: true
+          make: true
+          gcovr: true
+
+      - name: Configure CMake
+        run: |
+          cmake -S . -B ./build -G "${{matrix.generator}}" -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}}
+
+      - name: Build
+        run: |
+          cmake --build ./build
+
+      - name: Unix - Test and coverage
+        working-directory: ./build
+        run: ctest
